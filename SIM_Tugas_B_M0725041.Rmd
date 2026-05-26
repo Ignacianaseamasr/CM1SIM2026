@@ -1,0 +1,143 @@
+---
+title: "Coffee vs Tea : Mana yang Lebih Menguntungkan?"
+author: "Nama : Ignaciana Sabila Massaid | NIM: M0725041 | Kelas: E"
+date: "16-04-2026"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+
+# 1. Deskripsi Insight
+
+Dataset yang digunakan adalah **Coffee Chain Datasets** yang mencatat transaksi penjualan produk dari berbagai wilayah di Amerika Serikat pada periode **Januari 2012 hingga Desember 2013**. Dataset ini terdiri dari 4.248 observasi dengan 20 variabel, mencakup informasi seperti jenis produk, wilayah pasar, serta data finansial seperti penjualan (*sales*), biaya (*COGS*), margin, profit, dan biaya pemasaran (*marketing*).
+
+Dalam dataset ini terdapat empat tipe produk, yaitu Coffee, Tea, Espresso, dan Herbal Tea. Dari keempat tipe tersebut, **Coffee** dan **Tea** merupakan dua kategori utama yang paling banyak dikonsumsi dan menjadi pemasukan utama pada bisnis kedai kopi. Keduanya memiliki kriteria pelanggan yang berbeda, Coffee identik dengan minuman sehari-hari yang tinggi kafein, sementara Tea lebih sering dipilih sebagai alternatif yang lebih ringan.
+
+**Insight yang diambil:** Manakah antara Coffee dan Tea yang lebih menguntungkan bagi perusahaan?
+
+Pertanyaan ini menarik karena meskipun Coffee sering dianggap sebagai produk utama, tetapi bukan berarti Tea kalah menguntungkan. Bisa saja Tea memiliki biaya produksi lebih rendah sehingga margin keuntungannya justru lebih tinggi. Analisis ini akan menjawab pertanyaan tersebut melalui perbandingan statistik deskriptif, visualisasi data, serta uji statistik untuk melihat apakah perbedaan yang ada benar-benar signifikan.
+
+
+# 2. Persiapan Data
+
+## 2.1 Menyiapkan Packages yang Akan Digunakan
+```{r libraries}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+```
+
+## 2.2 Import dan Filter Data
+```{r import}
+df <- read_excel("E:/SIM 2026/1. Tugas SIM 2025B - Coffee Chain Datasets.xlsx")
+
+df_ct <- df %>%
+  filter(`Product Type` %in% c("Coffee", "Tea"))
+
+cat("Jumlah data Coffee:", sum(df_ct$`Product Type` == "Coffee"), "\n")
+cat("Jumlah data Tea   :", sum(df_ct$`Product Type` == "Tea"), "\n")
+```
+
+# 3. Visualisasi Data
+
+## 3.1 Perbandingan Rata-rata Profit per Kategori
+```{r viz-bar, fig.width=6, fig.height=4}
+df_avg <- df_ct %>%
+  group_by(`Product Type`) %>%
+  summarise(Avg_Profit = mean(Profit))
+
+ggplot(df_avg, aes(x = `Product Type`, y = Avg_Profit, fill = `Product Type`)) +
+  geom_col(width = 0.5, alpha = 0.85) +
+  geom_text(aes(label = round(Avg_Profit, 1)), vjust = -0.5, size = 4) +
+  labs(title = "Rata-rata Profit: Coffee vs Tea",
+       x = "Tipe Produk", y = "Rata-rata Profit") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## 3.2 Distribusi Profit (Boxplot)
+```{r viz-boxplot, fig.width=6, fig.height=4}
+ggplot(df_ct, aes(x = `Product Type`, y = Profit, fill = `Product Type`)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Distribusi Profit: Coffee vs Tea",
+       subtitle = "Garis merah = batas profit nol",
+       x = "Tipe Produk", y = "Profit") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## 3.3 Rata-rata Profit per Produk Individual
+```{r viz-produk, fig.width=7, fig.height=4}
+df_produk <- df_ct %>%
+  group_by(`Product Type`, Product) %>%
+  summarise(Avg_Profit = mean(Profit), .groups = "drop")
+
+ggplot(df_produk, aes(x = reorder(Product, Avg_Profit),
+                      y = Avg_Profit, fill = `Product Type`)) +
+  geom_col(alpha = 0.85) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  coord_flip() +
+  labs(title = "Rata-rata Profit per Produk",
+       x = "Produk", y = "Rata-rata Profit", fill = "Tipe Produk") +
+  theme_minimal()
+```
+
+# 4. Analisis Data
+
+## 4.1 Statistik Deskriptif
+```{r deskriptif}
+coffee <- df_ct$Profit[df_ct$`Product Type` == "Coffee"]
+tea    <- df_ct$Profit[df_ct$`Product Type` == "Tea"]
+
+cat("=== Coffee ===\n")
+summary(coffee)
+
+cat("\n=== Tea ===\n")
+summary(tea)
+```
+
+## 4.2 Uji t Independen
+Uji t dua sampel digunakan untuk menguji apakah rata-rata profit Coffee dan Tea berbeda secara signifikan.
+
+- $H_0$: Rata-rata profit Coffee = rata-rata profit Tea  
+- $H_1$: Rata-rata profit Coffee ≠ rata-rata profit Tea  
+- Tingkat signifikansi: $\alpha = 0.05$
+
+```{r uji-t}
+t.test(coffee, tea)
+```
+
+# 5. Interpretasi Hasil
+
+## 5.1 Visualisasi
+Dari **bar chart** terlihat jelas bahwa rata-rata profit Coffee lebih unggul. **Boxplot** memperkuat temuan ini, distribusi profit Tea memiliki nilai pencilan (*outlier*) negatif yang jauh lebih ekstrem dibanding Coffee, yang menjadi penyebab rata-rata Tea lebih rendah meskipun median-nya sedikit lebih tinggi. 
+
+Dari **grafik per produk**, terlihat bahwa **Colombian** adalah produk Coffee paling menguntungkan dengan rata-rata profit **116.26**, diikuti **Earl Grey** (Tea) sebesar **83.90**, dan **Darjeeling** (Tea) sebesar **75.66**. Produk paling bermasalah adalah **Green Tea** dengan rata-rata profit **-0.80** — satu-satunya produk yang rata-ratanya berada di bawah nol, dan menjadi penyebab utama rendahnya performa kategori Tea secara keseluruhan.
+
+
+## 5.2 Statistik Deskriptif
+Berdasarkan hasil summary():
+
+- **Rata-rata (Mean):** Rata-rata profit Coffee adalah **70.72**, lebih tinggi dibanding Tea yang hanya **55.19**. Ini menunjukkan bahwa secara umum transaksi Coffee menghasilkan keuntungan lebih besar.
+- **Median:** Median profit Coffee adalah **39**, sedangkan Tea **44**. Nilai median Tea yang sedikit lebih tinggi menunjukkan bahwa setengah dari transaksi Tea sebenarnya cukup menguntungkan, tetapi rata-ratanya tertarik ke bawah oleh transaksi-transaksi yang merugi besar.
+- **Nilai Minimum:** Profit minimum Coffee adalah **-221**, sedangkan Tea jauh lebih rendah yaitu **-638**. Ini menunjukkan bahwa Tea pernah mengalami kerugian yang jauh lebih besar dibanding Coffee.
+- **Nilai Maksimum:** Profit maksimum Coffee mencapai **778**, lebih tinggi dibanding Tea yang hanya **362**. Coffee memiliki potensi keuntungan tertinggi yang jauh lebih besar.
+- **Standar Deviasi:** Coffee (SD = 118.84) dan Tea (SD = 109.16) sama-sama memiliki variasi yang cukup tinggi, artinya profit keduanya tidak stabil dan fluktuatif antar transaksi.
+
+
+## 5.3 Uji t Independen
+Hasil uji t menunjukkan **p-value = 0.0024 < 0.05**, sehingga $H_0$ ditolak. Perbedaan rata-rata profit antara Coffee dan Tea **signifikan secara statistik** . Coffee terbukti secara konsisten lebih menguntungkan dibanding Tea.
+
+
+## 5.4 Kesimpulan
+1. **Coffee lebih menguntungkan** dibanding Tea dari sisi rata-rata profit (70.72 vs 55.19) dan potensi profit maksimum (778 vs 362).
+2. Berdasarkan hasil uji t, terdapat perbedaan yang nyata antara rata-rata profit Coffee dan Tea (p-value = 0.0024), sehingga **dapat disimpulkan bahwa Coffee memang lebih menguntungkan dibanding Tea**.
+3. Produk **Green Tea** menjadi penyebab utama rendahnya performa kategori Tea dan perlu dievaluasi lebih lanjut, misalnya dari sisi strategi harga atau efisiensi biaya produksi dan jika perusahaan ingin meningkatkan profitabilitas, disarankan untuk **memperkuat lini Coffee** (terutama Colombian).
+
+
+*Laporan ini dibuat menggunakan R-Markdown untuk memenuhi Tugas Mata Kuliah Sistem Informasi Manajemen, Program Studi S1 Statistika, Universitas Sebelas Maret.*
